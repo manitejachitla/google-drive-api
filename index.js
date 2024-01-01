@@ -27,7 +27,7 @@ app.get('/auth',(req,res)=>{
     try {
         const creds=fs.readFileSync('creds.json')
         oauth2Client.setCredentials(JSON.parse(creds))
-        res.json({msg:"success"})
+        res.json({status:"success"})
     }catch (e) {
         // generate a url that asks permissions for Blogger and Google Calendar scopes
         const scopes = [
@@ -42,17 +42,39 @@ app.get('/auth',(req,res)=>{
             // If you only need one scope you can pass it as a string
             scope: scopes
         });
-        res.redirect(url)
+        console.log(url)
+        res.json({url})
         // res.json({msg:"creds not found",url:url})
     }
 
 })
 // console.log(drive)
 app.get('/google/auth',async (req,res)=>{
-    const {code}=req.query
-    const {tokens}=await oauth2Client.getToken(code)
-    fs.writeFileSync('creds.json',JSON.stringify(tokens))
-    res.send("autorization success")
+    try {
+        const {code}=req.query
+        const {tokens}=await oauth2Client.getToken(code)
+        fs.writeFileSync('creds.json',JSON.stringify(tokens))
+        oauth2Client.setCredentials(tokens)
+        res.json({status:"success",message:"autorization success"})
+    }catch (e) {
+        let message="Unable to Verify Token"
+        if (e?.response?.data?.error){
+            message=e.response.data.error
+        }
+        res.json({status:"failure",message})
+
+    }
+
+})
+app.get('/delete/token',async (req,res)=>{
+    try {
+        fs.unlinkSync('creds.json')
+    }catch (e) {
+
+    }finally {
+        res.json({status:"success"})
+    }
+
 })
 app.get('/get_files',(req,res)=>{
     const files = [];
